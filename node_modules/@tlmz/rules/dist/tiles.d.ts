@@ -1,0 +1,14 @@
+export type Suit = 'W' | 'T' | 'B';
+export type NumberTile = `${Suit}${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
+export type HonorTile = 'Zhong' | 'Fa' | 'Bai';
+export type TileCode = NumberTile | HonorTile;
+export declare const suits: Suit[];
+export declare const honors: HonorTile[];
+export declare const allTileFaces: TileCode[];
+export declare function tileLabel(tile: TileCode): string;
+export declare function isNumberTile(tile: TileCode): tile is NumberTile;
+export declare function suitOf(tile: TileCode): Suit | undefined;
+export declare function rankOf(tile: TileCode): number | undefined;
+export declare function makeTile(suit: Suit, rank: number): TileCode;
+export declare function sortTiles(tiles: TileCode[]): TileCode[];
+export declare function countTiles(tiles: TileCode[]): Map<TileCode, number>;
