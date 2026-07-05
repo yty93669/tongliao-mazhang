@@ -220,7 +220,7 @@ function seatDirection(me: number, target: number) {
 
 function phaseLabel(phase: string) {
   const map: Record<string, string> = {
-    waiting: 'Waiting',
+    waiting: '等待玩家',
     betting: '本局设置',
     playing: '进行中',
     responding: '响应中',
@@ -229,6 +229,12 @@ function phaseLabel(phase: string) {
     finished: '结束',
   };
   return map[phase] ?? phase;
+}
+
+function hasVisibleAction(actions: string[]) {
+  return actions.some(action =>
+    ['PASS', 'HU', 'CHI', 'PENG', 'MING_GANG', 'BU_GANG', 'AN_GANG', 'GUO', 'END_XI', 'DECLARE_XI', 'DRAW', 'FENZHANG', 'DISCARD'].includes(action),
+  );
 }
 
 function compactActions(actions: string[]) {
@@ -368,6 +374,16 @@ function App() {
                     <TileBadge title="鱼牌" tile={state.fishTile} highlight />
                   </div>
 
+                  {(state.phase === 'playing' || state.phase === 'responding') && (
+                    <div className="fish-banner">
+                      <span className="status-label">本局鱼牌</span>
+                      <div className="fish-banner-body">
+                        <TileFace tile={state.fishTile} />
+                        <strong>{label(state.fishTile)}</strong>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="center-last">
                     {state.lastDiscard ? (
                       <>
@@ -389,6 +405,8 @@ function App() {
                     <span className="status-label">当前可操作</span>
                     <div>{myActions.length ? compactActions(myActions).join(' / ') : '等待中'}</div>
                   </div>
+
+                  <RiverBoard state={state} me={seat} />
                 </div>
 
                 <section className="self-zone">
@@ -414,16 +432,18 @@ function App() {
                       <Tiles tiles={me?.discarded ?? []} fish={state.fishTile} compact />
                     </div>
 
-                    <SeatActionPanel
-                      state={state}
-                      actionsBySeat={actionsBySeat}
-                      seat={seat}
-                      actions={myActions}
-                      chiOptions={myChiOptions}
-                      guoMode={guoMode}
-                      onGuoMode={setGuoMode}
-                      onAction={action}
-                    />
+                    {hasVisibleAction(myActions) && (
+                      <SeatActionPanel
+                        state={state}
+                        actionsBySeat={actionsBySeat}
+                        seat={seat}
+                        actions={myActions}
+                        chiOptions={myChiOptions}
+                        guoMode={guoMode}
+                        onGuoMode={setGuoMode}
+                        onAction={action}
+                      />
+                    )}
 
                     <div className="hand-panel">
                       <div className="section-label">手牌 {me?.hand.length ?? 0}</div>
@@ -561,6 +581,20 @@ function PlayerSeat({ player, me, state, position }: { player?: Player; me: numb
         ))}
       </div>
     </section>
+  );
+}
+
+function RiverBoard({ state, me }: { state: GameState; me: number }) {
+  const ordered = [2, 1, 0, 3].map(offset => state.players[(me + offset) % 4]);
+  return (
+    <div className="river-board">
+      {ordered.map(player => (
+        <div key={player.seat} className={`river-seat river-${seatDirection(me, player.seat)}`}>
+          <div className="river-name">{seatDirection(me, player.seat)}</div>
+          <Tiles tiles={player.discarded.slice(-12)} fish={state.fishTile} compact />
+        </div>
+      ))}
+    </div>
   );
 }
 

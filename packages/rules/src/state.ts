@@ -26,6 +26,7 @@ export type GameState = {
   turnDrawn: boolean;
   xiWindowOpen: boolean;
   openingXiDone: boolean;
+  openingXiReady: boolean[];
   pendingXiSupplement: boolean;
   wall: TileCode[];
   revealedFishTile: TileCode;
@@ -66,6 +67,7 @@ export function makeGame(opts: { seed?: number; dealerSeat?: number; roomId?: st
     turnDrawn: true,
     xiWindowOpen: true,
     openingXiDone: false,
+    openingXiReady: [false, false, false, false],
     pendingXiSupplement: false,
     wall: dealt.wall,
     revealedFishTile,

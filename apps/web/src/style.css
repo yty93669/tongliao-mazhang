@@ -270,6 +270,24 @@ input {
   background: rgba(255,255,255,0.045);
 }
 
+.fish-banner {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(239,199,109,0.12);
+  box-shadow: 0 0 0 1px rgba(239,199,109,0.22) inset;
+}
+
+.fish-banner-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fish-banner-body strong {
+  font-size: 22px;
+  color: #ffe39a;
+}
+
 .status-label,
 .section-label {
   display: block;
@@ -293,6 +311,7 @@ input {
 
 .tile-badge.highlight {
   box-shadow: 0 0 0 1px rgba(239,199,109,0.35) inset;
+  background: rgba(239,199,109,0.14);
 }
 
 .tile-face {
@@ -312,6 +331,25 @@ input {
 .empty-copy {
   color: var(--muted);
   line-height: 1.5;
+}
+
+.river-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.river-seat {
+  min-height: 88px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+}
+
+.river-name {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #decea8;
 }
 
 .self-zone {
@@ -407,7 +445,8 @@ input {
 .action-panel {
   padding: 14px;
   border-radius: 20px;
-  background: rgba(255,255,255,0.045);
+  background: rgba(7,18,15,0.88);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.28);
 }
 
 .action-list {

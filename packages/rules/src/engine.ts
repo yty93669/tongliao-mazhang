@@ -50,19 +50,12 @@ function xiHandCountAllowed(game: GameState, seat: number) {
   return false;
 }
 
-function advanceOpeningXi(game: GameState) {
+function finishOpeningXi(game: GameState) {
   if (!openingXiPhase(game)) return;
-  const nextSeat = (game.currentSeat + 1) % 4;
-  if (nextSeat === game.dealerSeat) {
-    game.currentSeat = game.dealerSeat;
-    game.turnDrawn = true;
-    game.xiWindowOpen = false;
-    game.openingXiDone = true;
-  } else {
-    game.currentSeat = nextSeat;
-    game.turnDrawn = nextSeat === game.dealerSeat;
-    game.xiWindowOpen = true;
-  }
+  game.currentSeat = game.dealerSeat;
+  game.turnDrawn = true;
+  game.xiWindowOpen = false;
+  game.openingXiDone = true;
   game.pendingXiSupplement = false;
   game.drawnTile = undefined;
 }
@@ -255,13 +248,17 @@ export function availableActions(game: GameState, seat: number) {
     return [...new Set(actions)];
   }
 
-  if (game.phase === 'playing' && game.currentSeat === seat) {
-    const xiSets = findXiSets(p.hand, ctx);
-    if (openingXiPhase(game)) {
+  if (openingXiPhase(game)) {
+    if (!game.openingXiReady[seat]) {
+      const xiSets = findXiSets(p.hand, ctx);
       if (xiSets.length) actions.push('DECLARE_XI');
       actions.push('END_XI');
-      return [...new Set(actions)];
     }
+    return [...new Set(actions)];
+  }
+
+  if (game.phase === 'playing' && game.currentSeat === seat) {
+    const xiSets = findXiSets(p.hand, ctx);
     if (game.pendingXiSupplement && xiSets.length) actions.push('DECLARE_XI');
     if (game.pendingXiSupplement) {
       actions.push('END_XI');
@@ -392,7 +389,7 @@ export function applyAction(game: GameState, action: ClientAction): GameState {
     if (game.currentSeat !== action.seat) throw new Error('没轮到该玩家');
     if (openingXiPhase(game)) {
       game.log.push({ type: 'openingXiDone', seat: action.seat });
-      advanceOpeningXi(game);
+      if (game.openingXiReady.every(Boolean)) finishOpeningXi(game);
       return game;
     }
     if (!game.pendingXiSupplement) throw new Error('当前没有待结束的亮喜');
