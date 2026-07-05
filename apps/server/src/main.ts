@@ -8,7 +8,7 @@ import { WebSocketServer } from 'ws';
 import { RoomManager, type Client } from './room-manager.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const webDist = join(__dirname, '../../../web/dist');
+const webDist = join(__dirname, '../../web/dist');
 
 const app = express();
 app.use(cors());

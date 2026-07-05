@@ -6,8 +6,12 @@
   "scripts": {
     "test": "npm run test -w @tlmz/rules",
     "build": "npm run build -w @tlmz/rules && npm run build -w @tlmz/server && npm run build -w @tlmz/web",
+    "start": "npm run -w @tlmz/server start",
     "dev:server": "npm run dev -w @tlmz/server",
     "dev:web": "npm run dev -w @tlmz/web"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
