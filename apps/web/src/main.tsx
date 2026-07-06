@@ -43,13 +43,7 @@ type GameState = {
   winnerSeat?: number;
 };
 
-const labels: Record<string, string> = {
-  Zhong: '中',
-  Fa: '发',
-  Bai: '白',
-  BACK: '牌背',
-};
-
+const labels: Record<string, string> = { Zhong: '中', Fa: '发', Bai: '白', BACK: '牌背' };
 const phaseLabels: Record<string, string> = {
   waiting: '等待玩家',
   betting: '本局设置',
@@ -59,7 +53,7 @@ const phaseLabels: Record<string, string> = {
   settlement: '结算',
   finished: '结束',
 };
-
+const windLabels = ['东', '南', '西', '北'];
 const actionLabels: Record<string, string> = {
   DISCARD: '出牌',
   DRAW: '摸牌',
@@ -78,9 +72,7 @@ const actionLabels: Record<string, string> = {
   SET_BASE: '基础分',
   SET_BET: '扎针买鱼',
 };
-
 const directionLabels = ['自己', '下家', '对家', '上家'];
-
 const tileOrder = new Map<string, number>([
   ...['W', 'T', 'B'].flatMap((suit, suitIndex) =>
     Array.from({ length: 9 }, (_, index) => [`${suit}${index + 1}`, suitIndex * 9 + index] as [string, number]),
@@ -90,7 +82,6 @@ const tileOrder = new Map<string, number>([
   ['Bai', 29],
   ['BACK', 99],
 ]);
-
 const xiDefs: Array<[string, Tile[]]> = [
   ['中发白', ['Zhong', 'Fa', 'Bai']],
   ['中发鱼', ['Zhong', 'Fa', 'Fish' as Tile]],
@@ -116,18 +107,12 @@ const xiDefs: Array<[string, Tile[]]> = [
 function label(tile: Tile) {
   if (labels[tile]) return labels[tile];
   const suitMap: Record<string, string> = { W: '万', T: '条', B: '筒' };
-  const numMap: Record<string, string> = {
-    '1': '一',
-    '2': '二',
-    '3': '三',
-    '4': '四',
-    '5': '五',
-    '6': '六',
-    '7': '七',
-    '8': '八',
-    '9': '九',
-  };
+  const numMap: Record<string, string> = { '1': '一', '2': '二', '3': '三', '4': '四', '5': '五', '6': '六', '7': '七', '8': '八', '9': '九' };
   return `${numMap[tile[1]]}${suitMap[tile[0]]}`;
+}
+
+function phaseLabel(phase: string) {
+  return phaseLabels[phase] ?? phase;
 }
 
 function tileImage(tile: Tile) {
@@ -142,18 +127,6 @@ function wsUrl() {
   return `${protocol}//${location.host}/ws`;
 }
 
-function phaseLabel(phase: string) {
-  return phaseLabels[phase] ?? phase;
-}
-
-function compactActions(actions: string[]) {
-  return actions.map(action => actionLabels[action] ?? action);
-}
-
-function seatName(player: Player | undefined, fallbackSeat: number) {
-  return player?.name || `玩家${fallbackSeat + 1}`;
-}
-
 function relativeSeat(me: number, target: number) {
   return (target - me + 4) % 4;
 }
@@ -162,10 +135,8 @@ function seatDirection(me: number, target: number) {
   return directionLabels[relativeSeat(me, target)];
 }
 
-function logicalTile(tile: Tile, fish: Tile): Tile {
-  if (tile === fish) return 'T1';
-  if (tile === 'T1' && fish !== 'T1') return fish;
-  return tile;
+function seatName(player: Player | undefined, fallbackSeat: number) {
+  return player?.name || `玩家${fallbackSeat + 1}`;
 }
 
 function orderKey(tile: Tile, fish: Tile) {
@@ -186,17 +157,23 @@ function tilesForView(tiles: Tile[], fish: Tile, drawn?: Tile) {
   return [...sortTilesForView(base, fish).map(tile => ({ tile, drawn: false })), { tile: drawn, drawn: true }];
 }
 
+function logicalTile(tile: Tile, fish: Tile): Tile {
+  if (tile === fish) return 'T1';
+  if (tile === 'T1' && fish !== 'T1') return fish;
+  return tile;
+}
+
+function matchesXiPatternTokenClient(tile: Tile, token: Tile, fish: Tile) {
+  if (token === 'Fish') return tile === fish;
+  return logicalTile(tile, fish) === token;
+}
+
 function xiMelds(player?: Player) {
   return player?.melds.filter(meld => meld.type === 'xi') ?? [];
 }
 
 function xiPatternForMeld(meld: Meld) {
   return xiDefs.find(([name]) => name === meld.name)?.[1];
-}
-
-function matchesXiPatternTokenClient(tile: Tile, token: Tile, fish: Tile) {
-  if (token === 'Fish') return tile === fish;
-  return logicalTile(tile, fish) === token;
 }
 
 function canGuoToMeldClient(meld: Meld, tile: Tile, fish: Tile) {
@@ -231,23 +208,8 @@ function isChiSequenceTileClient(tile: Tile, fish: Tile) {
   return isNumberTile(effectiveTileForChiClient(tile, fish));
 }
 
-function legalChiOptionsClient(
-  hand: Tile[],
-  discard?: Tile,
-  seat?: number,
-  discarderSeat?: number,
-  source?: 'normal' | 'xi',
-  fish?: Tile,
-) {
-  if (
-    seat == null ||
-    discarderSeat == null ||
-    source !== 'normal' ||
-    !discard ||
-    !fish ||
-    seat !== ((discarderSeat + 1) % 4) ||
-    !isChiSequenceTileClient(discard, fish)
-  ) {
+function legalChiOptionsClient(hand: Tile[], discard?: Tile, seat?: number, discarderSeat?: number, source?: 'normal' | 'xi', fish?: Tile) {
+  if (seat == null || discarderSeat == null || source !== 'normal' || !discard || !fish || seat !== ((discarderSeat + 1) % 4) || !isChiSequenceTileClient(discard, fish)) {
     return [] as Tile[][];
   }
   const effectiveDiscard = effectiveTileForChiClient(discard, fish);
@@ -328,12 +290,6 @@ function findXiNamesForButtons(hand: Tile[], fish: Tile) {
   return names;
 }
 
-function wallChunkCounts(total: number) {
-  const counts = [0, 0, 0, 0];
-  for (let index = 0; index < total; index++) counts[index % 4] += 1;
-  return counts;
-}
-
 function availableBuGangTiles(player: Player | undefined) {
   if (!player) return [];
   return player.melds
@@ -346,9 +302,11 @@ function availableAnGangTiles(player: Player | undefined) {
   if (!player) return [];
   const counts = new Map<Tile, number>();
   for (const tile of player.hand) counts.set(tile, (counts.get(tile) ?? 0) + 1);
-  return Array.from(counts.entries())
-    .filter(([, count]) => count >= 4)
-    .map(([tile]) => tile);
+  return Array.from(counts.entries()).filter(([, count]) => count >= 4).map(([tile]) => tile);
+}
+
+function compactActions(actions: string[]) {
+  return actions.map(action => actionLabels[action] ?? action);
 }
 
 function App() {
@@ -400,14 +358,13 @@ function App() {
   }, []);
 
   const send = (payload: unknown) => ws.current?.send(JSON.stringify(payload));
-  const me = useMemo(() => (seat == null ? undefined : state?.players[seat]), [state, seat]);
+  const action = (payload: unknown) => send({ type: 'ACTION', action: payload });
+  const me = useMemo(() => (seat == null ? undefined : state?.players[seat]), [seat, state]);
   const myActions = seat == null ? [] : (actionsBySeat[seat] ?? []);
 
   useEffect(() => {
     if (guoMode && !myActions.includes('GUO')) setGuoMode(false);
   }, [guoMode, myActions]);
-
-  const action = (payload: unknown) => send({ type: 'ACTION', action: payload });
 
   const myChiOptions = useMemo(() => {
     if (!state || seat == null || !me) return [] as Tile[][];
@@ -427,201 +384,147 @@ function App() {
   const buGangTiles = useMemo(() => availableBuGangTiles(me), [me]);
   const anGangTiles = useMemo(() => availableAnGangTiles(me), [me]);
 
-  return (
-    <div className="app">
-      <div className="table-shell">
-        <header className="table-topbar">
-          <div className="fish-box">
-            <div className="fish-box-title">翻鱼</div>
-            <div className="fish-box-value">{state ? label(state.fishTile) : '--'}</div>
+  if (!state || seat == null || !me) {
+    return (
+      <div className="page-shell">
+        <div className="lobby-card">
+          <div className="brand-kicker">房间入口</div>
+          <h1>进入麻将房间</h1>
+          <p>一人创建房间，把 6 位房间号发给其他玩家，四个页面进入同一局。</p>
+          <label className="field">
+            <span>昵称</span>
+            <input value={name} onChange={event => setName(event.target.value)} placeholder="输入你的昵称" />
+          </label>
+          <label className="field">
+            <span>房间号</span>
+            <input value={room} onChange={event => setRoom(event.target.value)} placeholder="输入 6 位房间号" />
+          </label>
+          <div className="lobby-actions">
+            <button onClick={() => send({ type: 'CREATE_ROOM' })}>创建房间</button>
+            <button disabled={!room.trim() || !name.trim()} onClick={() => send({ type: 'JOIN', roomId: room.trim(), name: name.trim() })}>加入房间</button>
           </div>
-          <div className="info-bar">
+          <div className="lobby-message">{msg}</div>
+        </div>
+      </div>
+    );
+  }
+
+  const topPlayer = tablePlayers[2];
+  const leftPlayer = tablePlayers[3];
+  const rightPlayer = tablePlayers[1];
+  const currentSeatName = seatName(state.players[state.currentSeat], state.currentSeat);
+  const currentStatus = state.phase === 'responding' && state.lastDiscard ? `等待响应 ${label(state.lastDiscard.tile)}` : `轮到 ${currentSeatName}`;
+
+  return (
+    <div className="page-shell">
+      <div className="board">
+        <div className="topbar">
+          <div className="box fish-box">
+            <div className="fish-title">本局鱼牌</div>
+            <Tile size="small" tile={state.fishTile} />
+            <div className="fish-name">{label(state.fishTile)}</div>
+          </div>
+
+          <div className="box info-bar">
             <div className="brand-block">
               <div className="brand-kicker">TONGLIAO MAHJONG</div>
-              <div className="brand-title">通辽麻将牌桌</div>
+              <div className="brand-title">通辽麻将 第 {state.round} 局</div>
             </div>
-            <div className="table-meta">
-              <InfoPill label="房间" value={room || '--'} />
-              <InfoPill label="人数" value={`${connectedCount}/4`} />
-              <InfoPill label="阶段" value={state ? phaseLabel(state.phase) : '大厅'} />
-              <InfoPill label="牌墙" value={state ? `${state.wall.length}` : '--'} />
+            <div className="meta-list">
+              <div className="meta-pill">房号 {room}</div>
+              <div className="meta-pill">{windLabels[(state.round - 1) % 4] ?? '东'}一局</div>
+              <div className="meta-pill">{connectedCount} / 4 人</div>
             </div>
           </div>
-        </header>
+        </div>
 
-        <main className="table-stage">
-          {state && seat != null ? (
-            <>
-              <div className="table-felt">
-                <WallRim total={state.wall.length} />
-                <PlayerSeat player={tablePlayers[2]} me={seat} state={state} position="top" />
-                <PlayerSeat player={tablePlayers[3]} me={seat} state={state} position="left" />
-                <PlayerSeat player={tablePlayers[1]} me={seat} state={state} position="right" />
+        <TopSeat player={topPlayer} me={seat} state={state} />
 
-                <section className="table-center">
-                  <div className="center-status">
-                    <div className="center-chip">
-                      <span className="status-label">庄家</span>
-                      <strong>{seatName(state.players[state.dealerSeat], state.dealerSeat)}</strong>
-                    </div>
-                    <div className="center-chip">
-                      <span className="status-label">轮到</span>
-                      <strong>{seatName(state.players[state.currentSeat], state.currentSeat)}</strong>
-                    </div>
-                  </div>
+        <section className="table-row">
+          <SideSeat player={leftPlayer} me={seat} state={state} side="left" />
 
-                  <div className="center-fish">
-                    <TileBadge title="翻牌" tile={state.revealedFishTile} />
-                    <TileBadge title="鱼牌" tile={state.fishTile} highlight />
-                  </div>
+          <main className="side-center">
+            <div className="center-column left">
+              <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="melds" />
+              <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="discards" />
+            </div>
 
-                  <div className="fish-banner">
-                    <span className="status-label">本局鱼牌</span>
-                    <div className="fish-banner-body">
-                      <TileFace tile={state.fishTile} />
-                      <strong>{label(state.fishTile)}</strong>
-                    </div>
-                  </div>
-
-                  <div className="center-last">
-                    {state.lastDiscard ? (
-                      <>
-                        <span className="status-label">最新出牌</span>
-                        <div className="last-card">
-                          <TileFace tile={state.lastDiscard.tile} />
-                          <div>
-                            <strong>{seatName(state.players[state.lastDiscard.seat], state.lastDiscard.seat)}</strong>
-                            <div className="minor-copy">{state.lastDiscard.source === 'xi' ? '亮喜打出' : '普通出牌'}</div>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="placeholder-copy">当前还没有人出牌</div>
-                    )}
-                  </div>
-
-                  <div className="center-actions-preview">
-                    <span className="status-label">当前可操作</span>
-                    <div>{myActions.length ? compactActions(myActions).join(' / ') : '等待中'}</div>
-                  </div>
-
-                  <RiverBoard state={state} me={seat} />
-                </section>
-
-                <section className="self-zone">
-                  <div className="self-rack">
-                    <div className="self-summary">
-                      <div>
-                        <div className="brand-kicker">座位 {seat + 1}</div>
-                        <h2>{me?.name}</h2>
-                        <div className="minor-copy">手牌 {me?.hand.length ?? 0} 张</div>
-                      </div>
-                      <div className="self-score">
-                        <span>积分</span>
-                        <strong>{state.scores[seat]}</strong>
-                      </div>
-                    </div>
-
-                    <div className="rack-fronts">
-                      <MeldStrip title="喜牌" melds={me?.melds.filter(meld => meld.type === 'xi') ?? []} fish={state.fishTile} />
-                      <MeldStrip title="吃碰杠" melds={me?.melds.filter(meld => meld.type !== 'xi') ?? []} fish={state.fishTile} />
-                    </div>
-
-                    <div className="rack-discards">
-                      <div className="section-label">我的弃牌</div>
-                      <Tiles tiles={me?.discarded ?? []} fish={state.fishTile} compact />
-                    </div>
-
-                    {hasVisibleAction(myActions) && (
-                      <SeatActionPanel
-                        state={state}
-                        actionsBySeat={actionsBySeat}
-                        seat={seat}
-                        actions={myActions}
-                        chiOptions={myChiOptions}
-                        guoMode={guoMode}
-                        onGuoMode={setGuoMode}
-                        onAction={action}
-                        buGangTiles={buGangTiles}
-                        anGangTiles={anGangTiles}
-                      />
-                    )}
-
-                    <div className="hand-panel">
-                      <div className="section-label">手牌</div>
-                      <Tiles
-                        tiles={me?.hand ?? []}
-                        fish={state.fishTile}
-                        drawn={state.drawnTile?.seat === seat ? state.drawnTile.tile : undefined}
-                        sort
-                        clickable={myActions.includes('DISCARD') || guoMode}
-                        canClickTile={guoMode ? tile => guoTiles.has(tile) : undefined}
-                        dimUnclickable={guoMode}
-                        onClick={tile => (guoMode ? action({ type: 'GUO', seat, tile }) : action({ type: 'DISCARD', seat, tile }))}
-                      />
-                    </div>
-                  </div>
-                </section>
-              </div>
-
-              <aside className="side-panels">
-                <StatusPanel state={state} seat={seat} msg={msg} />
-                {state.phase === 'betting' && (
-                  <BettingPanel
-                    state={state}
-                    seat={seat}
-                    baseInput={baseInput}
-                    zhaInput={zhaInput}
-                    buyFishInput={buyFishInput}
-                    onBaseInput={setBaseInput}
-                    onZhaInput={setZhaInput}
-                    onBuyFishInput={setBuyFishInput}
-                    onAction={action}
-                  />
-                )}
-                {state.phase === 'settlement' && <SettlementPanel state={state} seat={seat} onAction={action} />}
-              </aside>
-            </>
-          ) : (
-            <div className="lobby-overlay">
-              <div className="lobby-card">
-                <div className="brand-kicker">房间入口</div>
-                <h1>进入麻将房间</h1>
-                <p>一人创建房间，把 6 位房间号发给其他玩家，四个页面进入同一局。</p>
-
-                <label className="field">
-                  <span>昵称</span>
-                  <input value={name} onChange={event => setName(event.target.value)} placeholder="输入你的昵称" />
-                </label>
-
-                <label className="field">
-                  <span>房间号</span>
-                  <input value={room} onChange={event => setRoom(event.target.value)} placeholder="输入 6 位房间号" />
-                </label>
-
-                <div className="lobby-actions">
-                  <button onClick={() => send({ type: 'CREATE_ROOM' })}>创建房间</button>
-                  <button disabled={!room.trim() || !name.trim()} onClick={() => send({ type: 'JOIN', roomId: room.trim(), name: name.trim() })}>
-                    加入房间
-                  </button>
+            <div className="center-core">
+              <div className="turn-pill">{currentStatus}</div>
+              <div className="center-winds">
+                <div className="winds-inner">
+                  <div className="wind-east">东</div>
+                  <div className="wind-south">南</div>
+                  <div className="wind-west">西</div>
+                  <div className="wind-north">北</div>
+                  <div className="dealer-mark">庄</div>
                 </div>
-
-                <div className="lobby-message">{msg}</div>
+              </div>
+              <div className="stat-row">
+                <div className="box stat-card">
+                  <div className="stat-label">剩余张数</div>
+                  <div className="stat-value">{state.wall.length}</div>
+                </div>
+                <div className="box stat-card">
+                  <div className="stat-label">当前鱼牌</div>
+                  <div className="stat-value">{label(state.fishTile)}</div>
+                </div>
               </div>
             </div>
-          )}
-        </main>
 
-        {state?.phase === 'waiting' && (
-          <div className="floating-start">
-            <div>
-              <div className="brand-kicker">等待开始</div>
-              <strong>已连接 {connectedCount}/4 人</strong>
+            <div className="center-column right">
+              <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="discards" />
+              <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="melds" />
             </div>
-            <button disabled={state.phase !== 'waiting' || !canStart} onClick={() => send({ type: 'START', roomId: room })}>
-              开始游戏
-            </button>
-          </div>
+          </main>
+
+          <SideSeat player={rightPlayer} me={seat} state={state} side="right" />
+        </section>
+
+        <BottomSeat
+          player={me}
+          seat={seat}
+          state={state}
+          actions={myActions}
+          guoMode={guoMode}
+          guoTiles={guoTiles}
+          onTileClick={tile => (guoMode ? action({ type: 'GUO', seat, tile }) : action({ type: 'DISCARD', seat, tile }))}
+        />
+      </div>
+
+      <div className="table-aux">
+        <StatusBox state={state} seat={seat} msg={msg} canStart={canStart} connectedCount={connectedCount} room={room} onStart={() => send({ type: 'START', roomId: room })} />
+        {(hasVisibleAction(myActions) || state.phase === 'betting' || state.phase === 'settlement') && (
+          <section className="box aux-panel">
+            {state.phase === 'betting' ? (
+              <BettingPanel
+                state={state}
+                seat={seat}
+                baseInput={baseInput}
+                zhaInput={zhaInput}
+                buyFishInput={buyFishInput}
+                onBaseInput={setBaseInput}
+                onZhaInput={setZhaInput}
+                onBuyFishInput={setBuyFishInput}
+                onAction={action}
+              />
+            ) : state.phase === 'settlement' ? (
+              <SettlementPanel state={state} seat={seat} onAction={action} />
+            ) : (
+              <SeatActionPanel
+                state={state}
+                actionsBySeat={actionsBySeat}
+                seat={seat}
+                actions={myActions}
+                chiOptions={myChiOptions}
+                guoMode={guoMode}
+                onGuoMode={setGuoMode}
+                onAction={action}
+                buGangTiles={buGangTiles}
+                anGangTiles={anGangTiles}
+              />
+            )}
+          </section>
         )}
       </div>
     </div>
@@ -629,179 +532,235 @@ function App() {
 }
 
 function hasVisibleAction(actions: string[]) {
-  return actions.some(action =>
-    ['PASS', 'HU', 'CHI', 'PENG', 'MING_GANG', 'BU_GANG', 'AN_GANG', 'GUO', 'END_XI', 'DECLARE_XI', 'DRAW', 'FENZHANG', 'DISCARD'].includes(action),
-  );
+  return actions.some(action => ['PASS', 'HU', 'CHI', 'PENG', 'MING_GANG', 'BU_GANG', 'AN_GANG', 'GUO', 'END_XI', 'DECLARE_XI', 'DRAW', 'FENZHANG', 'DISCARD'].includes(action));
 }
 
-function InfoPill({ label, value }: { label: string; value: string }) {
+function Tile({ tile, size, className }: { tile: Tile; size: 'small' | 'mid' | 'big'; className?: string }) {
   return (
-    <div className="info-pill">
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className={`tile ${size} ${className ?? ''}`}>
+      <img src={tileImage(tile)} alt={label(tile)} />
     </div>
   );
 }
 
-function TileBadge({ title, tile, highlight }: { title: string; tile: Tile; highlight?: boolean }) {
-  return (
-    <div className={`tile-badge ${highlight ? 'highlight' : ''}`}>
-      <span>{title}</span>
-      <TileFace tile={tile} />
-    </div>
-  );
-}
-
-function TileFace({ tile }: { tile: Tile }) {
-  return <img className="tile-face" src={tileImage(tile)} alt={label(tile)} title={label(tile)} />;
-}
-
-function WallRim({ total }: { total: number }) {
-  const [bottom, right, top, left] = wallChunkCounts(total);
+function TileList({ tiles, fish, size, drawn, clickable, canClickTile, onClick }: { tiles: Tile[]; fish: Tile; size: 'small' | 'mid' | 'big'; drawn?: Tile; clickable?: boolean; canClickTile?: (tile: Tile) => boolean; onClick?: (tile: Tile) => void }) {
+  const shown = size === 'big' ? tilesForView(tiles, fish, drawn) : tiles.map(tile => ({ tile, drawn: false }));
   return (
     <>
-      <WallSegment position="top" count={top} />
-      <WallSegment position="left" count={left} />
-      <WallSegment position="right" count={right} />
-      <WallSegment position="bottom" count={bottom} />
+      {shown.map(({ tile, drawn: isDrawn }, index) => {
+        const active = !!clickable && (!canClickTile || canClickTile(tile));
+        return (
+          <button
+            key={`${tile}-${index}`}
+            className={`plain-tile-button ${active ? 'active' : ''} ${isDrawn ? 'drawn-gap' : ''}`}
+            disabled={!active}
+            onClick={() => onClick?.(tile)}
+            title={label(tile)}
+          >
+            <Tile tile={tile} size={size} />
+          </button>
+        );
+      })}
     </>
   );
 }
 
-function WallSegment({ position, count }: { position: 'top' | 'left' | 'right' | 'bottom'; count: number }) {
+function PlayerCard({ player, me, state, badge, status }: { player: Player; me: number; state: GameState; badge: string; status: string }) {
   return (
-    <div className={`wall-segment wall-${position}`}>
-      {Array.from({ length: count }, (_, index) => (
-        <div key={`${position}-${index}`} className="wall-tile" />
-      ))}
-    </div>
-  );
-}
-
-function PlayerSeat({ player, me, state, position }: { player?: Player; me: number; state: GameState; position: 'top' | 'left' | 'right' }) {
-  if (!player) return null;
-  const current = player.seat === state.currentSeat;
-  return (
-    <section className={`player-seat seat-${position} ${current ? 'active' : ''}`}>
+    <div className="box player-card">
       <div className="player-head">
-        <div className="player-head-main">
-          <div className="avatar-badge">{seatDirection(me, player.seat).slice(0, 1)}</div>
-          <div>
-            <div className="seat-caption">{seatDirection(me, player.seat)}</div>
-            <div className="player-name">{player.name}</div>
-            <div className="player-score">积分 {state.scores[player.seat]}</div>
-          </div>
+        <div className="avatar-badge">{badge}</div>
+        <div className="player-meta">
+          <div className="player-name">{player.name}</div>
+          <div className="player-score">{state.scores[player.seat]} 分</div>
         </div>
-        <span className={`seat-light ${player.connected ? 'online' : 'offline'}`} />
       </div>
-
-      <div className="player-status-row">
-        <span>{player.hand.length} 张手牌</span>
-        {player.seat === state.dealerSeat && <span>庄</span>}
-      </div>
-
-      <MeldStrip title="明牌" melds={player.melds} fish={state.fishTile} compact />
-
-      <div className="seat-discards">
-        <div className="section-label">弃牌</div>
-        <Tiles tiles={player.discarded} fish={state.fishTile} compact />
-      </div>
-
-      <div className={`hidden-hand hidden-${position}`}>
-        {player.hand.map((_, index) => (
-          <div key={`back-${index}`} className="hidden-tile">
-            <TileFace tile="BACK" />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function RiverBoard({ state, me }: { state: GameState; me: number }) {
-  const ordered = [2, 1, 0, 3].map(offset => state.players[(me + offset) % 4]);
-  return (
-    <div className="river-board">
-      {ordered.map(player => (
-        <div key={player.seat} className={`river-seat river-${seatDirection(me, player.seat)}`}>
-          <div className="river-name">{seatDirection(me, player.seat)}</div>
-          <Tiles tiles={player.discarded.slice(-12)} fish={state.fishTile} compact />
-        </div>
-      ))}
+      <div className="player-status">{status || seatDirection(me, player.seat)}</div>
     </div>
   );
 }
 
-function StatusPanel({ state, seat, msg }: { state: GameState; seat: number; msg: string }) {
+function TopSeat({ player, me, state }: { player: Player; me: number; state: GameState }) {
   return (
-    <section className="panel-card">
-      <div className="panel-title-row">
-        <h3>牌桌状态</h3>
-        <span>{phaseLabel(state.phase)}</span>
+    <section className="top-seat">
+      <div className="top-main">
+        <div className="seat-caption">上家手牌</div>
+        <div className="top-hand">
+          <BackRow count={player.hand.length} vertical={false} />
+        </div>
+        <div className="top-detail">
+          <MeldArea player={player} fish={state.fishTile} size="mid" />
+          <DiscardArea tiles={player.discarded} fish={state.fishTile} className="top-river" size="mid" limit={18} />
+        </div>
       </div>
-      <div className="status-grid">
-        <div><span>局数</span><strong>{state.round}</strong></div>
-        <div><span>座位</span><strong>{seat + 1}</strong></div>
-        <div><span>基础分</span><strong>{state.baseScore}</strong></div>
-        <div><span>当前</span><strong>{seatName(state.players[state.currentSeat], state.currentSeat)}</strong></div>
-      </div>
-      <div className="panel-note">{msg || '对局进行中。'}</div>
+      <PlayerCard player={player} me={me} state={state} badge="对" status={player.seat === state.currentSeat ? '等待出牌' : seatDirection(me, player.seat)} />
     </section>
   );
 }
 
-function BettingPanel({
-  state,
-  seat,
-  baseInput,
-  zhaInput,
-  buyFishInput,
-  onBaseInput,
-  onZhaInput,
-  onBuyFishInput,
-  onAction,
-}: {
-  state: GameState;
-  seat: number;
-  baseInput: number;
-  zhaInput: boolean;
-  buyFishInput: number;
-  onBaseInput: (value: number) => void;
-  onZhaInput: (value: boolean) => void;
-  onBuyFishInput: (value: number) => void;
-  onAction: (payload: unknown) => void;
-}) {
+function SideSeat({ player, me, state, side }: { player: Player; me: number; state: GameState; side: 'left' | 'right' }) {
+  const badge = side === 'left' ? '上' : '下';
   return (
-    <section className="panel-card">
-      <div className="panel-title-row">
-        <h3>本局设置</h3>
-        <span>开局前</span>
-      </div>
-
-      {seat === state.dealerSeat && (
-        <div className="inline-controls">
-          <input type="number" min="1" value={baseInput} onChange={event => onBaseInput(Number(event.target.value) || 1)} />
-          <button onClick={() => onAction({ type: 'SET_BASE', seat, baseScore: baseInput })}>设置基础分</button>
+    <aside className={`side-seat ${side === 'right' ? 'right' : ''}`}>
+      {side === 'left' && (
+        <div className="side-meta">
+          <PlayerCard player={player} me={me} state={state} badge={badge} status={seatDirection(me, player.seat)} />
         </div>
       )}
-
-      <div className="bet-options">
-        <label><input type="checkbox" checked={zhaInput} onChange={event => onZhaInput(event.target.checked)} /> 扎针</label>
-        <label>买鱼 <input type="number" min="0" value={buyFishInput} onChange={event => onBuyFishInput(Math.max(0, Number(event.target.value) || 0))} /></label>
-      </div>
-
-      <button disabled={state.bets[seat]?.ready} onClick={() => onAction({ type: 'SET_BET', seat, zha: zhaInput, buyFish: buyFishInput })}>
-        {state.bets[seat]?.ready ? '已确认' : '确认本局设置'}
-      </button>
-
-      <div className="bet-list">
-        {state.players.map(player => (
-          <div key={player.seat} className="bet-row">
-            <span>{player.name}</span>
-            <strong>{state.bets[player.seat]?.ready ? '已确认' : '未确认'}</strong>
+      <div className="side-stack">
+        <div className="seat-caption" style={side === 'right' ? { textAlign: 'right' } : undefined}>{side === 'left' ? '左家手牌' : '右家手牌'}</div>
+        <div className="side-block">
+          <div className="stack-v">
+            <BackRow count={player.hand.length} vertical />
           </div>
-        ))}
+        </div>
       </div>
+      {side === 'right' && (
+        <div className="side-meta">
+          <PlayerCard player={player} me={me} state={state} badge={badge} status={seatDirection(me, player.seat)} />
+        </div>
+      )}
+    </aside>
+  );
+}
+
+function BackRow({ count, vertical }: { count: number; vertical?: boolean }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <div key={index} className={vertical ? 'back-v' : 'back-h'} />
+      ))}
+    </>
+  );
+}
+
+function MeldArea({ player, fish, size }: { player: Player; fish: Tile; size: 'small' | 'mid' }) {
+  return (
+    <div className="meld-strip">
+      <div className="meld-line">
+        {player.melds.length ? player.melds.map((meld, index) => <MeldSet key={index} meld={meld} fish={fish} size={size} />) : <div className="action-note">暂无</div>}
+      </div>
+    </div>
+  );
+}
+
+function MeldSet({ meld, fish, size }: { meld: Meld; fish: Tile; size: 'small' | 'mid' }) {
+  return (
+    <div className="meld-set">
+      {meld.tiles.map((tile, index) => <Tile key={`${tile}-${index}`} tile={tile} size={size} />)}
+      <div className="action-note">{meld.name ?? actionLabels[meld.type] ?? meld.type}</div>
+    </div>
+  );
+}
+
+function DiscardArea({ tiles, fish, className, size, limit }: { tiles: Tile[]; fish: Tile; className: string; size: 'small' | 'mid'; limit: number }) {
+  return (
+    <div className={className}>
+      {tiles.slice(-limit).map((tile, index) => <Tile key={`${tile}-${index}`} tile={tile} size={size} />)}
+    </div>
+  );
+}
+
+function chunk<T>(items: T[], size: number) {
+  const out: T[][] = [];
+  for (let index = 0; index < items.length; index += size) out.push(items.slice(index, index + size));
+  return out;
+}
+
+function SideLaneRows({ player, fish, kind }: { player: Player; fish: Tile; kind: 'melds' | 'discards' }) {
+  if (kind === 'melds') {
+    const rows = chunk(player.melds, 2);
+    return (
+      <div className="side-lane">
+        {rows.length ? rows.map((row, rowIndex) => (
+          <div key={rowIndex} className="side-row">
+            {row.map((meld, index) => <MeldSet key={index} meld={meld} fish={fish} size="small" />)}
+          </div>
+        )) : <div className="side-row"><div className="action-note">暂无</div></div>}
+      </div>
+    );
+  }
+
+  const rows = chunk(player.discarded.slice(-16), 4);
+  return (
+    <div className="side-lane">
+      {rows.length ? rows.map((row, rowIndex) => (
+        <div key={rowIndex} className="side-row">
+          {row.map((tile, index) => <Tile key={`${tile}-${index}`} tile={tile} size="mid" />)}
+        </div>
+      )) : <div className="side-row"><div className="action-note">暂无</div></div>}
+    </div>
+  );
+}
+
+function BottomSeat({
+  player,
+  seat,
+  state,
+  actions,
+  guoMode,
+  guoTiles,
+  onTileClick,
+}: {
+  player: Player;
+  seat: number;
+  state: GameState;
+  actions: string[];
+  guoMode: boolean;
+  guoTiles: Set<Tile>;
+  onTileClick: (tile: Tile) => void;
+}) {
+  return (
+    <section className="bottom-seat">
+      <div className="bottom-main">
+        <div className="bottom-detail">
+          <DiscardArea tiles={player.discarded} fish={state.fishTile} className="bottom-river" size="small" limit={24} />
+          <MeldArea player={player} fish={state.fishTile} size="mid" />
+        </div>
+
+        <div className="seat-caption">我的手牌</div>
+        <div className="bottom-hand">
+          <TileList
+            tiles={player.hand}
+            fish={state.fishTile}
+            size="big"
+            drawn={state.drawnTile?.seat === seat ? state.drawnTile.tile : undefined}
+            clickable={actions.includes('DISCARD') || guoMode}
+            canClickTile={guoMode ? tile => guoTiles.has(tile) : undefined}
+            onClick={onTileClick}
+          />
+        </div>
+      </div>
+
+      <div className="box player-card self-card">
+        <div className="player-head">
+          <div className="avatar-badge">我</div>
+          <div className="player-meta">
+            <div className="player-name">{player.name}</div>
+            <div className="player-score">{state.scores[player.seat]} 分</div>
+          </div>
+        </div>
+        <div className="player-status">{player.seat === state.currentSeat ? '当前出牌' : '等待轮到'}</div>
+      </div>
+    </section>
+  );
+}
+
+function StatusBox({ state, seat, msg, canStart, connectedCount, room, onStart }: { state: GameState; seat: number; msg: string; canStart: boolean; connectedCount: number; room: string; onStart: () => void }) {
+  return (
+    <section className="box aux-panel">
+      <div className="aux-title-row">
+        <strong>牌桌状态</strong>
+        <span>{phaseLabel(state.phase)}</span>
+      </div>
+      <div className="aux-meta-grid">
+        <div>座位 {seat + 1}</div>
+        <div>基础分 {state.baseScore}</div>
+        <div>房号 {room}</div>
+        <div>人数 {connectedCount}/4</div>
+      </div>
+      <div className="aux-note">{msg || `当前轮到 ${seatName(state.players[state.currentSeat], state.currentSeat)}`}</div>
+      {state.phase === 'waiting' && <button disabled={!canStart} onClick={onStart}>开始游戏</button>}
     </section>
   );
 }
@@ -833,45 +792,27 @@ function SeatActionPanel({
   const canResolve = (type: string) => canResolveResponseAction(state, actionsBySeat, seat, type);
   const waitingHigher = state.phase === 'responding' && ['HU', 'MING_GANG', 'PENG', 'CHI'].some(action => actions.includes(action) && !canResolve(action));
   const hasRespondPass = state.phase === 'responding' && actions.includes('PASS');
-  const hasActionButtons = actions.some(action =>
-    ['HU', 'CHI', 'PENG', 'MING_GANG', 'BU_GANG', 'AN_GANG', 'GUO', 'END_XI', 'DECLARE_XI', 'DRAW', 'FENZHANG', 'DISCARD'].includes(action),
-  );
 
   return (
-    <div className="action-panel">
-      <div className="panel-title-row">
-        <h3>操作区</h3>
-        <span>{hasActionButtons || hasRespondPass ? compactActions(actions).join(' / ') : '暂无操作'}</span>
+    <div>
+      <div className="aux-title-row">
+        <strong>当前操作</strong>
+        <span>{compactActions(actions).join(' / ') || '暂无'}</span>
       </div>
       <div className="action-list">
         {hasRespondPass && <button onClick={() => onAction({ type: 'PASS', seat })}>过</button>}
         <button disabled={!actions.includes('HU') || !canResolve('HU')} onClick={() => onAction({ type: 'HU', seat })}>胡</button>
         {actions.includes('CHI') && chiOptions.length > 1
-          ? chiOptions.map((option, index) => (
-              <button key={index} disabled={!canResolve('CHI')} onClick={() => onAction({ type: 'CHI', seat, tiles: option })}>
-                吃 {option.map(label).join('')}
-              </button>
-            ))
+          ? chiOptions.map((option, index) => <button key={index} disabled={!canResolve('CHI')} onClick={() => onAction({ type: 'CHI', seat, tiles: option })}>吃 {option.map(label).join('')}</button>)
           : <button disabled={!actions.includes('CHI') || !canResolve('CHI')} onClick={() => onAction({ type: 'CHI', seat, tiles: chiOptions[0] })}>吃</button>}
         <button disabled={!actions.includes('PENG') || !canResolve('PENG')} onClick={() => onAction({ type: 'PENG', seat })}>碰</button>
         <button disabled={!actions.includes('MING_GANG') || !canResolve('MING_GANG')} onClick={() => onAction({ type: 'MING_GANG', seat })}>明杠</button>
-
         {actions.includes('BU_GANG') && buGangTiles.length > 1
-          ? buGangTiles.map(tile => (
-              <button key={`bugang-${tile}`} onClick={() => onAction({ type: 'BU_GANG', seat, tile })}>
-                补杠 {label(tile)}
-              </button>
-            ))
+          ? buGangTiles.map(tile => <button key={tile} onClick={() => onAction({ type: 'BU_GANG', seat, tile })}>补杠 {label(tile)}</button>)
           : <button disabled={!actions.includes('BU_GANG')} onClick={() => onAction({ type: 'BU_GANG', seat, tile: buGangTiles[0] })}>补杠</button>}
-
         {actions.includes('AN_GANG') && anGangTiles.length > 1
-          ? anGangTiles.map(tile => (
-              <button key={`angang-${tile}`} onClick={() => onAction({ type: 'AN_GANG', seat, tile })}>
-                暗杠 {label(tile)}
-              </button>
-            ))
+          ? anGangTiles.map(tile => <button key={tile} onClick={() => onAction({ type: 'AN_GANG', seat, tile })}>暗杠 {label(tile)}</button>)
           : <button disabled={!actions.includes('AN_GANG')} onClick={() => onAction({ type: 'AN_GANG', seat, tile: anGangTiles[0] })}>暗杠</button>}
-
         {!guoMode && <button disabled={!actions.includes('GUO')} onClick={() => onGuoMode(true)}>过牌</button>}
         {guoMode && <button onClick={() => onGuoMode(false)}>结束过牌</button>}
         <button disabled={!actions.includes('END_XI')} onClick={() => onAction({ type: 'END_XI', seat })}>结束亮喜</button>
@@ -879,9 +820,55 @@ function SeatActionPanel({
         <button disabled={!actions.includes('DRAW')} onClick={() => onAction({ type: 'DRAW', seat })}>摸牌</button>
         <button disabled={!actions.includes('FENZHANG')} onClick={() => onAction({ type: 'FENZHANG', seat })}>分张</button>
       </div>
-      {waitingHigher && <div className="panel-note">还有更高优先级响应，需等待前位玩家先处理。</div>}
-      {actions.includes('DISCARD') && <div className="panel-note">点击下方手牌即可出牌。</div>}
-      {guoMode && <div className="panel-note">点击高亮手牌执行过牌。</div>}
+      {waitingHigher && <div className="aux-note">还有更高优先级响应，需等待前位玩家先处理。</div>}
+      {guoMode && <div className="aux-note">点击手牌中的可用牌执行过牌。</div>}
+    </div>
+  );
+}
+
+function XiButtons({ hand, fish, enabled, onXi }: { hand: Tile[]; fish: Tile; enabled: boolean; onXi: (name: string) => void }) {
+  const names = findXiNamesForButtons(hand, fish);
+  return <>{names.map(name => <button key={name} disabled={!enabled} onClick={() => onXi(name)}>亮喜 {name}</button>)}</>;
+}
+
+function BettingPanel({
+  state,
+  seat,
+  baseInput,
+  zhaInput,
+  buyFishInput,
+  onBaseInput,
+  onZhaInput,
+  onBuyFishInput,
+  onAction,
+}: {
+  state: GameState;
+  seat: number;
+  baseInput: number;
+  zhaInput: boolean;
+  buyFishInput: number;
+  onBaseInput: (value: number) => void;
+  onZhaInput: (value: boolean) => void;
+  onBuyFishInput: (value: number) => void;
+  onAction: (payload: unknown) => void;
+}) {
+  return (
+    <div>
+      <div className="aux-title-row">
+        <strong>本局设置</strong>
+        <span>开局前</span>
+      </div>
+      {seat === state.dealerSeat && (
+        <div className="inline-controls">
+          <input type="number" min="1" value={baseInput} onChange={event => onBaseInput(Number(event.target.value) || 1)} />
+          <button onClick={() => onAction({ type: 'SET_BASE', seat, baseScore: baseInput })}>设置基础分</button>
+        </div>
+      )}
+      <div className="bet-options">
+        <label><input type="checkbox" checked={zhaInput} onChange={event => onZhaInput(event.target.checked)} /> 扎针</label>
+        <label>买鱼 <input type="number" min="0" value={buyFishInput} onChange={event => onBuyFishInput(Math.max(0, Number(event.target.value) || 0))} /></label>
+      </div>
+      <button disabled={state.bets[seat]?.ready} onClick={() => onAction({ type: 'SET_BET', seat, zha: zhaInput, buyFish: buyFishInput })}>{state.bets[seat]?.ready ? '已确认' : '确认本局设置'}</button>
     </div>
   );
 }
@@ -889,118 +876,28 @@ function SeatActionPanel({
 function SettlementPanel({ state, seat, onAction }: { state: GameState; seat: number; onAction: (action: unknown) => void }) {
   const settlement = state.settlement;
   return (
-    <section className="panel-card">
-      <div className="panel-title-row">
-        <h3>结算</h3>
+    <div>
+      <div className="aux-title-row">
+        <strong>结算</strong>
         <span>{settlement?.selfDraw ? '自摸' : '点炮胡'}</span>
       </div>
-      {settlement ? (
-        <>
-          <div className="winner-banner">
-            <strong>{state.players[settlement.winnerSeat]?.name}</strong>
-            <span>基础分 {settlement.baseScore}</span>
-            <span>鱼数 {settlement.fishTotal}</span>
-          </div>
-          <table className="score-table">
-            <thead>
-              <tr><th>玩家</th><th>原积分</th><th>本局</th><th>现积分</th></tr>
-            </thead>
-            <tbody>
-              {settlement.deltas.map(delta => (
-                <tr key={delta.seat}>
-                  <td>{state.players[delta.seat]?.name}</td>
-                  <td>{delta.before}</td>
-                  <td className={delta.delta >= 0 ? 'plus' : 'minus'}>{delta.delta > 0 ? '+' : ''}{delta.delta}</td>
-                  <td>{delta.after}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      ) : (
-        <div className="panel-note">等待结算数据。</div>
+      {settlement && (
+        <table className="score-table">
+          <thead><tr><th>玩家</th><th>原积分</th><th>本局</th><th>现积分</th></tr></thead>
+          <tbody>
+            {settlement.deltas.map(delta => (
+              <tr key={delta.seat}>
+                <td>{state.players[delta.seat]?.name}</td>
+                <td>{delta.before}</td>
+                <td className={delta.delta >= 0 ? 'plus' : 'minus'}>{delta.delta > 0 ? '+' : ''}{delta.delta}</td>
+                <td>{delta.after}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
-      <button disabled={state.readyNext[seat]} onClick={() => onAction({ type: 'NEXT_ROUND', seat })}>
-        {state.readyNext[seat] ? '已准备下一局' : '下一局'}
-      </button>
-    </section>
-  );
-}
-
-function Tiles({
-  tiles,
-  fish,
-  sort,
-  drawn,
-  clickable,
-  onClick,
-  canClickTile,
-  dimUnclickable,
-  compact,
-}: {
-  tiles: Tile[];
-  fish: Tile;
-  sort?: boolean;
-  drawn?: Tile;
-  clickable?: boolean;
-  onClick?: (tile: Tile) => void;
-  canClickTile?: (tile: Tile) => boolean;
-  dimUnclickable?: boolean;
-  compact?: boolean;
-}) {
-  const shown = sort ? tilesForView(tiles, fish, drawn) : tiles.map(tile => ({ tile, drawn: false }));
-  return (
-    <div className={`tiles ${compact ? 'compact' : ''}`}>
-      {shown.map(({ tile, drawn: isDrawn }, index) => {
-        const canClick = !!clickable && tile !== 'BACK' && (!canClickTile || canClickTile(tile));
-        const dimmed = !!dimUnclickable && !canClick;
-        return (
-          <button
-            className={`tile ${isDrawn ? 'drawn' : ''} ${tile === fish ? 'fish' : ''} ${dimmed ? 'dimmed' : ''}`}
-            title={label(tile)}
-            disabled={!canClick}
-            key={`${tile}-${index}`}
-            onClick={() => onClick?.(tile)}
-          >
-            {tile === fish && <span className="fish-star">*</span>}
-            <img src={tileImage(tile)} alt={label(tile)} />
-          </button>
-        );
-      })}
+      <button disabled={state.readyNext[seat]} onClick={() => onAction({ type: 'NEXT_ROUND', seat })}>{state.readyNext[seat] ? '已准备下一局' : '下一局'}</button>
     </div>
-  );
-}
-
-function MeldStrip({ title, melds, fish, compact }: { title: string; melds: Meld[]; fish: Tile; compact?: boolean }) {
-  return (
-    <div className={`meld-strip ${compact ? 'compact' : ''}`}>
-      <div className="section-label">{title}</div>
-      <div className="meld-strip-body">
-        {melds.length ? melds.map((meld, index) => <MeldTiles key={index} meld={meld} fish={fish} compact={compact} />) : <span className="empty-copy">暂无</span>}
-      </div>
-    </div>
-  );
-}
-
-function MeldTiles({ meld, fish, compact }: { meld: Meld; fish: Tile; compact?: boolean }) {
-  return (
-    <div className="meld-set">
-      <span className="meld-name">{meld.name ?? actionLabels[meld.type] ?? meld.type}</span>
-      <Tiles tiles={meld.tiles} fish={fish} compact={compact} />
-    </div>
-  );
-}
-
-function XiButtons({ hand, fish, enabled, onXi }: { hand: Tile[]; fish: Tile; enabled: boolean; onXi: (name: string) => void }) {
-  const names = findXiNamesForButtons(hand, fish);
-  return (
-    <>
-      {names.map(name => (
-        <button key={name} disabled={!enabled} onClick={() => onXi(name)}>
-          亮喜 {name}
-        </button>
-      ))}
-    </>
   );
 }
 
