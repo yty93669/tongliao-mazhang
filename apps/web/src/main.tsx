@@ -444,6 +444,11 @@ function App() {
           <SideSeat player={leftPlayer} me={seat} state={state} side="left" />
 
           <main className="side-center">
+            <div className="center-band center-band-top">
+              <MeldArea player={topPlayer} fish={state.fishTile} size="mid" />
+              <DiscardArea tiles={topPlayer.discarded} fish={state.fishTile} className="top-river" size="mid" limit={18} />
+            </div>
+
             <div className="center-column left">
               <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="melds" />
               <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="discards" />
@@ -475,6 +480,11 @@ function App() {
             <div className="center-column right">
               <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="discards" />
               <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="melds" />
+            </div>
+
+            <div className="center-band center-band-bottom">
+              <DiscardArea tiles={me.discarded} fish={state.fishTile} className="bottom-river" size="small" limit={24} />
+              <MeldArea player={me} fish={state.fishTile} size="mid" />
             </div>
           </main>
 
@@ -587,10 +597,6 @@ function TopSeat({ player, me, state }: { player: Player; me: number; state: Gam
         <div className="seat-caption">上家手牌</div>
         <div className="top-hand">
           <BackRow count={player.hand.length} vertical={false} />
-        </div>
-        <div className="top-detail">
-          <MeldArea player={player} fish={state.fishTile} size="mid" />
-          <DiscardArea tiles={player.discarded} fish={state.fishTile} className="top-river" size="mid" limit={18} />
         </div>
       </div>
       <PlayerCard player={player} me={me} state={state} badge="对" status={player.seat === state.currentSeat ? '等待出牌' : seatDirection(me, player.seat)} />
@@ -713,11 +719,6 @@ function BottomSeat({
   return (
     <section className="bottom-seat">
       <div className="bottom-main">
-        <div className="bottom-detail">
-          <DiscardArea tiles={player.discarded} fish={state.fishTile} className="bottom-river" size="small" limit={24} />
-          <MeldArea player={player} fish={state.fishTile} size="mid" />
-        </div>
-
         <div className="seat-caption">我的手牌</div>
         <div className="bottom-hand">
           <TileList

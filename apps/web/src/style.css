@@ -227,7 +227,7 @@ input {
 
 .tile.small { width: 26px; height: 36px; }
 .tile.mid { width: 30px; height: 42px; }
-.tile.big { width: 48px; height: 72px; }
+.tile.big { width: 56px; height: 82px; }
 
 .back-v,
 .back-h {
@@ -436,9 +436,26 @@ input {
   background: radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.04), transparent 75%);
   display: grid;
   grid-template-columns: minmax(240px, 296px) 220px minmax(240px, 296px);
+  grid-template-rows: auto 1fr auto;
   gap: 18px;
   align-items: center;
   justify-content: center;
+}
+
+.center-band {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.center-band-top {
+  align-self: start;
+}
+
+.center-band-bottom {
+  align-self: end;
 }
 
 .center-column {
@@ -446,6 +463,21 @@ input {
   flex-direction: column;
   gap: 18px;
   min-width: 0;
+}
+
+.center-column.left {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.center-core {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+.center-column.right {
+  grid-row: 2;
+  grid-column: 3;
 }
 
 .center-core {
@@ -737,12 +769,13 @@ input {
 
 @media (max-width: 720px) {
   .page-shell { padding: 10px; }
-  .tile.big { width: 40px; height: 58px; }
+  .tile.big { width: 44px; height: 64px; }
   .tile.mid { width: 26px; height: 36px; }
   .tile.small { width: 22px; height: 30px; }
   .top-detail,
   .bottom-detail,
-  .aux-meta-grid {
+  .aux-meta-grid,
+  .center-band {
     grid-template-columns: 1fr;
   }
 }
