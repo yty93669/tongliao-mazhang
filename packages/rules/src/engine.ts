@@ -368,10 +368,10 @@ export function applyAction(game: GameState, action: ClientAction): GameState {
 
   if (action.type === 'DECLARE_XI') {
     if (game.phase !== 'playing') throw new Error('当前不能亮喜');
-    if (game.currentSeat !== action.seat) throw new Error('没轮到该玩家');
+    const openingXi = openingXiPhase(game);
+    if (!openingXi && game.currentSeat !== action.seat) throw new Error('没轮到该玩家');
     if (!firstRoundXiAllowed(game, action.seat)) throw new Error('只有第一轮可以亮喜');
     if (!game.xiWindowOpen && !game.pendingXiSupplement) throw new Error('当前不能亮喜');
-    const openingXi = openingXiPhase(game);
     const dealerOpening = openingDealerTurn(game, action.seat);
     if (!openingXi && !game.pendingXiSupplement) throw new Error('亮喜只能在开局摸第一张牌前进行');
     if (!game.pendingXiSupplement && !xiHandCountAllowed(game, action.seat)) throw new Error('亮喜只能在开局摸第一张牌前进行');
@@ -386,12 +386,13 @@ export function applyAction(game: GameState, action: ClientAction): GameState {
 
   if (action.type === 'END_XI') {
     if (game.phase !== 'playing') throw new Error('当前不能结束亮喜');
-    if (game.currentSeat !== action.seat) throw new Error('没轮到该玩家');
     if (openingXiPhase(game)) {
+      game.openingXiReady[action.seat] = true;
       game.log.push({ type: 'openingXiDone', seat: action.seat });
       if (game.openingXiReady.every(Boolean)) finishOpeningXi(game);
       return game;
     }
+    if (game.currentSeat !== action.seat) throw new Error('没轮到该玩家');
     if (!game.pendingXiSupplement) throw new Error('当前没有待结束的亮喜');
     drawSupplement(game, action.seat, 'xiSupplement');
     return game;

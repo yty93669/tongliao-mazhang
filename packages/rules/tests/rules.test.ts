@@ -16,8 +16,8 @@ import {
 } from '../src/index';
 
 function finishOpeningXi(game: ReturnType<typeof makeGame>) {
-  for (let i = 0; i < 4 && !game.openingXiDone; i++) {
-    applyAction(game, { type: 'END_XI', seat: game.currentSeat });
+  for (let seat = 0; seat < 4 && !game.openingXiDone; seat++) {
+    applyAction(game, { type: 'END_XI', seat });
   }
 }
 
@@ -126,13 +126,15 @@ describe('actions', () => {
     expect(game.players[0].hand).toHaveLength(17);
     expect(game.openingXiDone).toBe(false);
     expect(availableActions(game, 0)).toContain('END_XI');
+    expect(availableActions(game, 1)).toContain('END_XI');
     expect(availableActions(game, 0)).not.toContain('DISCARD');
     expect(availableActions(game, 0)).not.toContain('DRAW');
     expect(() => applyAction(game, { type: 'DISCARD', seat: 0, tile: game.players[0].hand[0] })).toThrow('所有玩家结束开局亮喜');
 
     applyAction(game, { type: 'END_XI', seat: 0 });
-    expect(game.currentSeat).toBe(1);
-    expect(game.turnDrawn).toBe(false);
+    expect(game.openingXiReady[0]).toBe(true);
+    expect(game.currentSeat).toBe(0);
+    expect(game.turnDrawn).toBe(true);
     expect(availableActions(game, 1)).toContain('END_XI');
     expect(availableActions(game, 1)).not.toContain('DRAW');
 
@@ -144,6 +146,28 @@ describe('actions', () => {
     expect(game.currentSeat).toBe(0);
     expect(game.turnDrawn).toBe(true);
     expect(availableActions(game, 0)).toContain('DISCARD');
+  });
+
+  it('allows all seats to declare and end opening xi without waiting for turn order', () => {
+    const game = makeGame({ seed: 2, dealerSeat: 0 });
+    game.fishTile = 'W3';
+    game.players[1].hand = ['Zhong','Fa','Bai','W1','W2','W3','W4','W5','W6','W7','W8','W9','T2','T3','T4','T5'];
+
+    expect(() => applyAction(game, { type: 'DECLARE_XI', seat: 1, name: '中发白' })).not.toThrow();
+    expect(game.players[1].melds).toHaveLength(1);
+    expect(game.currentSeat).toBe(0);
+
+    expect(() => applyAction(game, { type: 'END_XI', seat: 2 })).not.toThrow();
+    expect(game.openingXiReady[2]).toBe(true);
+    expect(game.openingXiDone).toBe(false);
+
+    applyAction(game, { type: 'END_XI', seat: 0 });
+    applyAction(game, { type: 'END_XI', seat: 1 });
+    applyAction(game, { type: 'END_XI', seat: 3 });
+
+    expect(game.openingXiDone).toBe(true);
+    expect(game.currentSeat).toBe(game.dealerSeat);
+    expect(availableActions(game, game.dealerSeat)).toContain('DISCARD');
   });
 
   it('does not require supplement draw after dealer xi on the opening turn', () => {
@@ -188,7 +212,7 @@ describe('actions', () => {
     expect(game.players[1].hand).toHaveLength(10);
     expect(game.wall).toHaveLength(wallBefore);
     expect(game.pendingXiSupplement).toBe(false);
-    expect(game.currentSeat).toBe(2);
+    expect(game.currentSeat).toBe(1);
   });
 
   it('allows non-dealer to declare xi during opening before their first draw', () => {
@@ -198,8 +222,8 @@ describe('actions', () => {
     game.players[1].discarded = [];
     game.players[1].hand = ['W2','W3','W8','W9','T2','T3','T4','T8','W1','B9','B1','B2','B3','B4','B5','B6'];
 
-    expect(game.currentSeat).toBe(1);
-    expect(game.turnDrawn).toBe(false);
+    expect(game.currentSeat).toBe(0);
+    expect(game.turnDrawn).toBe(true);
     expect(availableActions(game, 1)).toContain('DECLARE_XI');
     expect(availableActions(game, 1)).not.toContain('DRAW');
     expect(() => applyAction(game, { type: 'DECLARE_XI', seat: 1, name: '老虎喜儿' })).not.toThrow();

@@ -412,8 +412,13 @@ function App() {
   const topPlayer = tablePlayers[2];
   const leftPlayer = tablePlayers[3];
   const rightPlayer = tablePlayers[1];
+  const roundSetupDone = state.phase !== 'betting';
   const currentSeatName = seatName(state.players[state.currentSeat], state.currentSeat);
-  const currentStatus = state.phase === 'responding' && state.lastDiscard ? `等待响应 ${label(state.lastDiscard.tile)}` : `轮到 ${currentSeatName}`;
+  const currentStatus = state.phase === 'betting'
+    ? '请先完成本局设置'
+    : state.phase === 'responding' && state.lastDiscard
+      ? `等待响应 ${label(state.lastDiscard.tile)}`
+      : `轮到 ${currentSeatName}`;
 
   return (
     <div className="page-shell">
@@ -421,8 +426,8 @@ function App() {
         <div className="topbar">
           <div className="box fish-box">
             <div className="fish-title">本局鱼牌</div>
-            <Tile size="small" tile={state.fishTile} />
-            <div className="fish-name">{label(state.fishTile)}</div>
+            {roundSetupDone ? <Tile size="small" tile={state.fishTile} /> : <div className="hidden-fish-tile" />}
+            <div className="fish-name">{roundSetupDone ? label(state.fishTile) : '本局设置后显示'}</div>
           </div>
 
           <div className="box info-bar">
@@ -438,20 +443,20 @@ function App() {
           </div>
         </div>
 
-        <TopSeat player={topPlayer} me={seat} state={state} />
+        <TopSeat player={topPlayer} me={seat} state={state} revealed={roundSetupDone} />
 
         <section className="table-row">
-          <SideSeat player={leftPlayer} me={seat} state={state} side="left" />
+          <SideSeat player={leftPlayer} me={seat} state={state} side="left" revealed={roundSetupDone} />
 
           <main className="side-center">
             <div className="center-band center-band-top">
-              <MeldArea player={topPlayer} fish={state.fishTile} size="mid" />
-              <DiscardArea tiles={topPlayer.discarded} fish={state.fishTile} className="top-river" size="mid" limit={18} />
+              <MeldArea player={topPlayer} fish={state.fishTile} size="mid" revealed={roundSetupDone} />
+              <DiscardArea tiles={topPlayer.discarded} fish={state.fishTile} className="top-river" size="mid" limit={18} revealed={roundSetupDone} />
             </div>
 
             <div className="center-column left">
-              <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="melds" />
-              <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="discards" />
+              <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="melds" revealed={roundSetupDone} />
+              <SideLaneRows player={leftPlayer} fish={state.fishTile} kind="discards" revealed={roundSetupDone} />
             </div>
 
             <div className="center-core">
@@ -472,23 +477,23 @@ function App() {
                 </div>
                 <div className="box stat-card">
                   <div className="stat-label">当前鱼牌</div>
-                  <div className="stat-value">{label(state.fishTile)}</div>
+                  <div className="stat-value">{roundSetupDone ? label(state.fishTile) : '--'}</div>
                 </div>
               </div>
             </div>
 
             <div className="center-column right">
-              <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="discards" />
-              <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="melds" />
+              <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="discards" revealed={roundSetupDone} />
+              <SideLaneRows player={rightPlayer} fish={state.fishTile} kind="melds" revealed={roundSetupDone} />
             </div>
 
             <div className="center-band center-band-bottom">
-              <DiscardArea tiles={me.discarded} fish={state.fishTile} className="bottom-river" size="small" limit={24} />
-              <MeldArea player={me} fish={state.fishTile} size="mid" />
+              <DiscardArea tiles={me.discarded} fish={state.fishTile} className="bottom-river" size="small" limit={24} revealed={roundSetupDone} />
+              <MeldArea player={me} fish={state.fishTile} size="mid" revealed={roundSetupDone} />
             </div>
           </main>
 
-          <SideSeat player={rightPlayer} me={seat} state={state} side="right" />
+          <SideSeat player={rightPlayer} me={seat} state={state} side="right" revealed={roundSetupDone} />
         </section>
 
         <BottomSeat
@@ -498,6 +503,7 @@ function App() {
           actions={myActions}
           guoMode={guoMode}
           guoTiles={guoTiles}
+          revealed={roundSetupDone}
           onTileClick={tile => (guoMode ? action({ type: 'GUO', seat, tile }) : action({ type: 'DISCARD', seat, tile }))}
         />
       </div>
@@ -590,7 +596,7 @@ function PlayerCard({ player, me, state, badge, status }: { player: Player; me: 
   );
 }
 
-function TopSeat({ player, me, state }: { player: Player; me: number; state: GameState }) {
+function TopSeat({ player, me, state, revealed }: { player: Player; me: number; state: GameState; revealed: boolean }) {
   return (
     <section className="top-seat">
       <div className="top-main">
@@ -599,18 +605,18 @@ function TopSeat({ player, me, state }: { player: Player; me: number; state: Gam
           <BackRow count={player.hand.length} vertical={false} />
         </div>
       </div>
-      <PlayerCard player={player} me={me} state={state} badge="对" status={player.seat === state.currentSeat ? '等待出牌' : seatDirection(me, player.seat)} />
+      <PlayerCard player={player} me={me} state={state} badge="对" status={revealed && player.seat === state.currentSeat ? '等待出牌' : seatDirection(me, player.seat)} />
     </section>
   );
 }
 
-function SideSeat({ player, me, state, side }: { player: Player; me: number; state: GameState; side: 'left' | 'right' }) {
+function SideSeat({ player, me, state, side, revealed }: { player: Player; me: number; state: GameState; side: 'left' | 'right'; revealed: boolean }) {
   const badge = side === 'left' ? '上' : '下';
   return (
     <aside className={`side-seat ${side === 'right' ? 'right' : ''}`}>
       {side === 'left' && (
         <div className="side-meta">
-          <PlayerCard player={player} me={me} state={state} badge={badge} status={seatDirection(me, player.seat)} />
+          <PlayerCard player={player} me={me} state={state} badge={badge} status={revealed ? seatDirection(me, player.seat) : '等待设置'} />
         </div>
       )}
       <div className="side-stack">
@@ -623,7 +629,7 @@ function SideSeat({ player, me, state, side }: { player: Player; me: number; sta
       </div>
       {side === 'right' && (
         <div className="side-meta">
-          <PlayerCard player={player} me={me} state={state} badge={badge} status={seatDirection(me, player.seat)} />
+          <PlayerCard player={player} me={me} state={state} badge={badge} status={revealed ? seatDirection(me, player.seat) : '等待设置'} />
         </div>
       )}
     </aside>
@@ -640,11 +646,21 @@ function BackRow({ count, vertical }: { count: number; vertical?: boolean }) {
   );
 }
 
-function MeldArea({ player, fish, size }: { player: Player; fish: Tile; size: 'small' | 'mid' }) {
+function BackBigRow({ count }: { count: number }) {
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <Tile key={index} tile="BACK" size="big" />
+      ))}
+    </>
+  );
+}
+
+function MeldArea({ player, fish, size, revealed }: { player: Player; fish: Tile; size: 'small' | 'mid'; revealed: boolean }) {
   return (
     <div className="meld-strip">
       <div className="meld-line">
-        {player.melds.length ? player.melds.map((meld, index) => <MeldSet key={index} meld={meld} fish={fish} size={size} />) : <div className="action-note">暂无</div>}
+        {!revealed ? <div className="action-note">设置后显示</div> : player.melds.length ? player.melds.map((meld, index) => <MeldSet key={index} meld={meld} fish={fish} size={size} />) : <div className="action-note">暂无</div>}
       </div>
     </div>
   );
@@ -659,10 +675,10 @@ function MeldSet({ meld, fish, size }: { meld: Meld; fish: Tile; size: 'small' |
   );
 }
 
-function DiscardArea({ tiles, fish, className, size, limit }: { tiles: Tile[]; fish: Tile; className: string; size: 'small' | 'mid'; limit: number }) {
+function DiscardArea({ tiles, fish, className, size, limit, revealed }: { tiles: Tile[]; fish: Tile; className: string; size: 'small' | 'mid'; limit: number; revealed: boolean }) {
   return (
     <div className={className}>
-      {tiles.slice(-limit).map((tile, index) => <Tile key={`${tile}-${index}`} tile={tile} size={size} />)}
+      {revealed ? tiles.slice(-limit).map((tile, index) => <Tile key={`${tile}-${index}`} tile={tile} size={size} />) : <div className="action-note">暂无</div>}
     </div>
   );
 }
@@ -673,7 +689,10 @@ function chunk<T>(items: T[], size: number) {
   return out;
 }
 
-function SideLaneRows({ player, fish, kind }: { player: Player; fish: Tile; kind: 'melds' | 'discards' }) {
+function SideLaneRows({ player, fish, kind, revealed }: { player: Player; fish: Tile; kind: 'melds' | 'discards'; revealed: boolean }) {
+  if (!revealed) {
+    return <div className="side-lane"><div className="side-row"><div className="action-note">设置后显示</div></div></div>;
+  }
   if (kind === 'melds') {
     const rows = chunk(player.melds, 2);
     return (
@@ -706,6 +725,7 @@ function BottomSeat({
   actions,
   guoMode,
   guoTiles,
+  revealed,
   onTileClick,
 }: {
   player: Player;
@@ -714,6 +734,7 @@ function BottomSeat({
   actions: string[];
   guoMode: boolean;
   guoTiles: Set<Tile>;
+  revealed: boolean;
   onTileClick: (tile: Tile) => void;
 }) {
   return (
@@ -721,15 +742,19 @@ function BottomSeat({
       <div className="bottom-main">
         <div className="seat-caption">我的手牌</div>
         <div className="bottom-hand">
-          <TileList
-            tiles={player.hand}
-            fish={state.fishTile}
-            size="big"
-            drawn={state.drawnTile?.seat === seat ? state.drawnTile.tile : undefined}
-            clickable={actions.includes('DISCARD') || guoMode}
-            canClickTile={guoMode ? tile => guoTiles.has(tile) : undefined}
-            onClick={onTileClick}
-          />
+          {revealed ? (
+            <TileList
+              tiles={player.hand}
+              fish={state.fishTile}
+              size="big"
+              drawn={state.drawnTile?.seat === seat ? state.drawnTile.tile : undefined}
+              clickable={actions.includes('DISCARD') || guoMode}
+              canClickTile={guoMode ? tile => guoTiles.has(tile) : undefined}
+              onClick={onTileClick}
+            />
+          ) : (
+            <BackBigRow count={player.hand.length} />
+          )}
         </div>
       </div>
 
