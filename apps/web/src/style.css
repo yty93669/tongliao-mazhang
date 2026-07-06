@@ -54,7 +54,7 @@ input {
 }
 
 .board {
-  width: min(1360px, 100%);
+  width: min(1540px, 100%);
   min-height: 820px;
   margin: 0 auto;
   padding: 18px;
@@ -66,7 +66,7 @@ input {
     linear-gradient(180deg, var(--felt-top), var(--felt-bottom));
   box-shadow: 0 26px 54px rgba(0, 0, 0, 0.18);
   display: grid;
-  grid-template-columns: 128px 1fr 128px;
+  grid-template-columns: 132px 1fr 132px;
   grid-template-rows: auto auto 1fr auto;
   gap: 14px 18px;
 }
@@ -227,7 +227,7 @@ input {
 
 .tile.small { width: 26px; height: 36px; }
 .tile.mid { width: 30px; height: 42px; }
-.tile.big { width: 56px; height: 82px; }
+.tile.big { width: 52px; height: 78px; }
 
 .back-v,
 .back-h {
@@ -273,6 +273,13 @@ input {
 .bottom-hand {
   background: var(--panel-self);
   align-items: flex-end;
+}
+
+.bottom-hand {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
 }
 
 .drawn-gap {
@@ -374,7 +381,7 @@ input {
 .table-row {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 220px 1fr 220px;
+  grid-template-columns: 200px 1fr 200px;
   gap: 18px;
   align-items: stretch;
   min-height: 370px;
@@ -426,7 +433,7 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: radial-gradient(circle at 50% 48%, rgba(255, 255, 255, 0.04), transparent 75%);
   display: grid;
-  grid-template-columns: 296px 220px 296px;
+  grid-template-columns: minmax(240px, 296px) 220px minmax(240px, 296px);
   gap: 18px;
   align-items: center;
   justify-content: center;
@@ -525,7 +532,7 @@ input {
 .bottom-seat {
   grid-column: 2 / 4;
   display: grid;
-  grid-template-columns: 1fr 160px;
+  grid-template-columns: minmax(0, 1fr) 150px;
   gap: 16px;
   align-items: end;
 }
@@ -551,7 +558,7 @@ input {
 }
 
 .table-aux {
-  width: min(1360px, 100%);
+  width: min(1540px, 100%);
   margin: 16px auto 0;
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -671,6 +678,7 @@ input {
 
 @media (max-width: 1280px) {
   .board {
+    width: min(1460px, 100%);
     grid-template-columns: 108px 1fr 108px;
   }
 
@@ -727,7 +735,7 @@ input {
 
 @media (max-width: 720px) {
   .page-shell { padding: 10px; }
-  .tile.big { width: 44px; height: 64px; }
+  .tile.big { width: 42px; height: 62px; }
   .tile.mid { width: 26px; height: 36px; }
   .tile.small { width: 22px; height: 30px; }
   .top-detail,
