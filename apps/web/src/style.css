@@ -54,7 +54,7 @@ input {
 }
 
 .board {
-  width: min(1540px, 100%);
+  width: min(1720px, 100%);
   min-height: 820px;
   margin: 0 auto;
   padding: 18px;
@@ -227,7 +227,7 @@ input {
 
 .tile.small { width: 26px; height: 36px; }
 .tile.mid { width: 30px; height: 42px; }
-.tile.big { width: 52px; height: 78px; }
+.tile.big { width: 48px; height: 72px; }
 
 .back-v,
 .back-h {
@@ -253,6 +253,7 @@ input {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 }
 
 .top-hand,
@@ -280,6 +281,7 @@ input {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
+  justify-content: flex-start;
 }
 
 .drawn-gap {
@@ -530,7 +532,7 @@ input {
 }
 
 .bottom-seat {
-  grid-column: 2 / 4;
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 150px;
   gap: 16px;
@@ -558,7 +560,7 @@ input {
 }
 
 .table-aux {
-  width: min(1540px, 100%);
+  width: min(1720px, 100%);
   margin: 16px auto 0;
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -678,7 +680,7 @@ input {
 
 @media (max-width: 1280px) {
   .board {
-    width: min(1460px, 100%);
+    width: min(100%, 1520px);
     grid-template-columns: 108px 1fr 108px;
   }
 
@@ -735,7 +737,7 @@ input {
 
 @media (max-width: 720px) {
   .page-shell { padding: 10px; }
-  .tile.big { width: 42px; height: 62px; }
+  .tile.big { width: 40px; height: 58px; }
   .tile.mid { width: 26px; height: 36px; }
   .tile.small { width: 22px; height: 30px; }
   .top-detail,
